@@ -23,6 +23,6 @@ func (l *link) Encode() string {
 	return fmt.Sprintf("%X", string(encode.Sum(nil)[:5]))
 }
 
-func (l *link) print() {
+func (l *link) Print() {
 	fmt.Println(l)
 }

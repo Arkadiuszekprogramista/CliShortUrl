@@ -1,25 +1,29 @@
 package main
 
 import (
-	"app/pkg/shorter"
 	"app/cmd/shorterCmd"
+	"app/pkg/config"
+	"app/pkg/shorter"
 	"log"
-
 )
 
+var Redis shorter.Redis
 
 func main() {
 
-	configuration, err := ConfigFromFile("./config.json")
+
+	configuration, err := config.ConfigFromFile("./config.json")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	service, err := shorter.NewPool(configuration.Redis.Host, configuration.Redis.Port)
+	db, err := shorter.NewPool(configuration.Redis.Host, configuration.Redis.Port)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer service.Close()
+	
+	defer db.Pool.Close()
+
 	shorterCmd.Execute()
 
 }

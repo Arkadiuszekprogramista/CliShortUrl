@@ -1,8 +1,8 @@
-package main
+package config
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 )
 
 type Config struct {
@@ -13,7 +13,7 @@ type Config struct {
 }
 
 func ConfigFromFile(path string) (*Config, error) {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

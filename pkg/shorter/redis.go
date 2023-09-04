@@ -2,7 +2,7 @@ package shorter
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -12,29 +12,42 @@ type Redis struct {
 	Pool *redis.Pool
 }
 
-func NewPool(host, port string) (Service, error) {
-	pool := &redis.Pool{
-		MaxIdle: 10,
-		IdleTimeout: 240 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			 return redis.Dial("tcp",fmt.Sprintf("%s:%s",host, port))
-			},
-	}
-	
-	return &Redis{pool}, nil
+var myRedis *Redis
+
+func NewRedis(r *Redis) Redis {
+	r = myRedis
+	return *r
 }
 
-func(r *Redis) AddShortUrlToRedis(url link) (string, error) {
+func NewPool(host, port string) (*Redis, error) {
+	pool := &redis.Pool{
+		MaxIdle: 10,
+		IdleTimeout: 3 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp",fmt.Sprintf("%s:%s",host, port))
+			},
+	}
+
+	temp := Redis{
+		Pool: pool,
+	}
+
+	myRedis = &temp
+
+	return myRedis, nil
+}
+
+func(r *Redis) AddShortUrlToRedis(url link) error {
 	conn := r.Pool.Get()
 	defer conn.Close()
 
-	add, err := conn.Do("SET", url.addr, url.Encode())
+	_, err := conn.Do("SET", url.addr, url.Encode())
 	if err != nil {
 		fmt.Println("Error", err)
-		os.Exit(1)
+		return err
 	}
-	fmt.Println(add)
-	return "Added", nil
+	
+	return nil
 
 }
 
@@ -45,13 +58,28 @@ func(r *Redis) LoadDataFromRedis(key string) (string, error){
 	get, err := conn.Do("GET", key)
 	if err != nil {
 		fmt.Println("Error", err)
-		os.Exit(1)
+		return "", err
 	}
-	fmt.Println(get)
 	return fmt.Sprintln(get), nil
 }
 
 
-func(r *Redis) Close() error {
-	return r.Pool.Close()
+func(r *Redis) Close() {
+	defer r.Close()
+}
+
+
+func(r *Redis) PrintAll() error {
+
+
+	keys, err := r.Pool.Get().Do("KEYS","*")
+	if err != nil {
+		return err
+	}
+
+
+
+	log.Println(keys)
+
+	return nil
 }
