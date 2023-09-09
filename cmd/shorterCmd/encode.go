@@ -1,10 +1,9 @@
 package shorterCmd
 
 import (
-
-
 	"app/pkg/shorter"
 	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -13,6 +12,27 @@ var addr string
 var myDB *shorter.Redis
 
 
+var LoadDataFromRedisCmd = &cobra.Command{
+	Use: "get",
+	Aliases: []string{"get, load, g"},
+	Short: "Searching for rcord of given key",
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+
+		db := shorter.NewRedis(myDB)
+		
+		
+
+		get, err := db.LoadDataFromRedis(os.Args[1])
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		log.Println(get)
+
+
+	},
+}
 
 
 var PrintAllKeysFromRedisCmd = &cobra.Command{
@@ -24,11 +44,10 @@ var PrintAllKeysFromRedisCmd = &cobra.Command{
 
 		db := shorter.NewRedis(myDB)
 
-		err := db.PrintAll()
+		_, err := db.PrintAll()
 		if err != nil {
-			log.Println(err)
+			return
 		}
-
 	},
 }
 
@@ -56,6 +75,7 @@ var AddEncodedUrlToDBCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		db := shorter.NewRedis(myDB)
+
 		addr = args[0]
 		link := shorter.NewLink(addr)
 
@@ -66,5 +86,5 @@ var AddEncodedUrlToDBCmd = &cobra.Command{
 
 func init(){
 	EncodeCmd.Flags().StringVar(&addr,"Address","","Urt to short")
-	rootCmd.AddCommand(EncodeCmd, PrintAllKeysFromRedisCmd, AddEncodedUrlToDBCmd)
+	rootCmd.AddCommand(EncodeCmd, PrintAllKeysFromRedisCmd, AddEncodedUrlToDBCmd, LoadDataFromRedisCmd)
 }

@@ -8,16 +8,20 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+
 type Redis struct {
 	Pool *redis.Pool
 }
 
+
 var myRedis *Redis
+
 
 func NewRedis(r *Redis) Redis {
 	r = myRedis
 	return *r
 }
+
 
 func NewPool(host, port string) (*Redis, error) {
 	pool := &redis.Pool{
@@ -37,6 +41,7 @@ func NewPool(host, port string) (*Redis, error) {
 	return myRedis, nil
 }
 
+
 func(r *Redis) AddShortUrlToRedis(url link) error {
 	conn := r.Pool.Get()
 	defer conn.Close()
@@ -48,19 +53,20 @@ func(r *Redis) AddShortUrlToRedis(url link) error {
 	}
 	
 	return nil
-
 }
 
-func(r *Redis) LoadDataFromRedis(key string) (string, error){
+
+func(r *Redis) LoadDataFromRedis(key string) ([]string, error){
 	conn := r.Pool.Get()
 	defer conn.Close()
 
-	get, err := conn.Do("GET", key)
+	get, err := redis.Strings(conn.Do("GET", key))
+
 	if err != nil {
-		fmt.Println("Error", err)
-		return "", err
+		fmt.Println(err)
+		return get, err
 	}
-	return fmt.Sprintln(get), nil
+	return get, nil
 }
 
 
@@ -69,17 +75,25 @@ func(r *Redis) Close() {
 }
 
 
-func(r *Redis) PrintAll() error {
+func(r *Redis) PrintAll() (interface{}, error) {
 
+	var myKeys interface{}
 
-	keys, err := r.Pool.Get().Do("KEYS","*")
-	if err != nil {
-		return err
+	keys, err := redis.Strings(r.Pool.Get().Do("KEYS", "*"))
+
+	if len(keys) >= 100 {
+		log.Println("Loaded more then 100 records, Please use different command")
+	} else {
+		for _, key := range keys{
+			log.Println(key)
+		}
 	}
 
+	if err != nil {
+		return nil ,err
+	}
+	
+	myKeys = keys
 
-
-	log.Println(keys)
-
-	return nil
+	return myKeys, err
 }

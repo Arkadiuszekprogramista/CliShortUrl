@@ -11,7 +11,6 @@ var Redis shorter.Redis
 
 func main() {
 
-
 	configuration, err := config.ConfigFromFile("./config.json")
 	if err != nil {
 		log.Fatal(err)
@@ -21,7 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	defer db.Pool.Close()
 
 	shorterCmd.Execute()
