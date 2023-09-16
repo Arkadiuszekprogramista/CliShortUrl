@@ -65,7 +65,7 @@ var EncodeCmd = &cobra.Command{
 
 		s, err := shorter.Encode(args[0])
 		if err != nil {
-			log.Fatalln(err)
+			return
 		}
 
 		log.Printf("Input URL: %s\tShort ULR: %s", input, s)

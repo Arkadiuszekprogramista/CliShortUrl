@@ -24,7 +24,7 @@ func NewRedis(r *Redis) Redis {
 
 func AddrValidation(addr string) (*url.URL, error) {
 
-	url, err := url.Parse(addr)
+	url, err := url.ParseRequestURI(addr)
 	if err != nil {
 		return url, err
 	} else {
