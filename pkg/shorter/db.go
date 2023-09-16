@@ -3,6 +3,7 @@ package shorter
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -13,13 +14,22 @@ type Redis struct {
 	Pool *redis.Pool
 }
 
-
 var myRedis *Redis
 
 
 func NewRedis(r *Redis) Redis {
 	r = myRedis
 	return *r
+}
+
+func AddrValidation(addr string) (*url.URL, error) {
+
+	url, err := url.Parse(addr)
+	if err != nil {
+		return url, err
+	} else {
+		return url, nil
+	}
 }
 
 
@@ -42,31 +52,51 @@ func NewPool(host, port string) (*Redis, error) {
 }
 
 
-func(r *Redis) AddShortUrlToRedis(url link) error {
+func(r *Redis) AddShortUrlToRedis(addr string) error {
 	conn := r.Pool.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", url.addr, url.Encode())
+	url, err := AddrValidation(addr)
 	if err != nil {
-		fmt.Println("Error", err)
+		log.Printf("%s is not a URL", addr)
 		return err
-	}
+
+	} else {
+
+		u, err := Encode(url.Path)
+		if err != nil {
+			return err
+		}
 	
-	return nil
+		_, err = conn.Do("SET", url.Path, u)
+		if err != nil {
+			fmt.Println("Error", err)
+			return err
+		}
+		
+		return nil
+	}
+
 }
 
 
-func(r *Redis) LoadDataFromRedis(key string) ([]string, error){
+func(r *Redis) LoadDataFromRedis(key string) (string, error){
 	conn := r.Pool.Get()
 	defer conn.Close()
 
-	get, err := redis.Strings(conn.Do("GET", key))
+	get, err := redis.String(conn.Do("GET", key))
 
-	if err != nil {
-		fmt.Println(err)
+	if err == redis.ErrNil {
 		return get, err
 	}
-	return get, nil
+
+	if err != nil {
+		return get, err
+
+	} else {
+		return get, nil
+	}
+
 }
 
 

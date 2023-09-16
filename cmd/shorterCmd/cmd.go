@@ -3,14 +3,12 @@ package shorterCmd
 import (
 	"app/pkg/shorter"
 	"log"
-	"os"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/cobra"
 )
 
-var addr string
 var myDB *shorter.Redis
-
 
 var LoadDataFromRedisCmd = &cobra.Command{
 	Use: "get",
@@ -20,23 +18,28 @@ var LoadDataFromRedisCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		db := shorter.NewRedis(myDB)
-		
-		
 
-		get, err := db.LoadDataFromRedis(os.Args[1])
-		if err != nil {
-			log.Fatalln(err)
+		input := args[0]
+		
+		get, err := db.LoadDataFromRedis(input)
+
+		if err == redis.ErrNil {
+			log.Printf("no key: %s", input)
+			return
 		}
 
-		log.Println(get)
-
-
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+		log.Printf("Key: %s\tValue: %s", input, get)
+		return
 	},
 }
 
 
 var PrintAllKeysFromRedisCmd = &cobra.Command{
-	Use: "Keys",
+	Use: "keys",
 	Aliases: []string{"keys, all, a, k"},
 	Short: "Printing all kays form db(redis)",
 	Args: cobra.ExactArgs(0),
@@ -58,11 +61,14 @@ var EncodeCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		addr := args[0]
-		link := shorter.NewLink(addr)
-		s := link.Encode()
+		input := args[0]
 
-		log.Printf("Input URL: %s\tShort ULR: %s", addr, s)
+		s, err := shorter.Encode(args[0])
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		log.Printf("Input URL: %s\tShort ULR: %s", input, s)
 	},
 }
 
@@ -76,15 +82,11 @@ var AddEncodedUrlToDBCmd = &cobra.Command{
 
 		db := shorter.NewRedis(myDB)
 
-		addr = args[0]
-		link := shorter.NewLink(addr)
-
-		db.AddShortUrlToRedis(link)
+		db.AddShortUrlToRedis(args[0])
 
 	},
 }
 
 func init(){
-	EncodeCmd.Flags().StringVar(&addr,"Address","","Urt to short")
 	rootCmd.AddCommand(EncodeCmd, PrintAllKeysFromRedisCmd, AddEncodedUrlToDBCmd, LoadDataFromRedisCmd)
 }

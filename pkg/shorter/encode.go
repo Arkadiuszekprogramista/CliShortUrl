@@ -3,26 +3,28 @@ package shorter
 import (
 	"crypto/sha256"
 	"fmt"
+	"log"
+	"net/url"
 )
 
-type link struct {
-	addr string
-}
+var link *url.URL
 
-func NewLink(addr string) link {
-	url := link{
-		addr: addr,
+
+func Encode(s string) (string, error) {
+
+	url, err := AddrValidation(s)
+	if err != nil {
+		log.Printf("%s is not a URL", s)
+		return "", err
+	} else {
+		log.Printf("Encoding %s", s)
+		encode := sha256.New()
+		encode.Write([]byte(url.Path))
+		encode.Sum(nil)
+		return fmt.Sprintf("%X", string(encode.Sum(nil)[:5])), nil
 	}
-	return url
 }
 
-func (l *link) Encode() string {
-	encode := sha256.New()
-	encode.Write([]byte(l.addr))
-	encode.Sum(nil)
-	return fmt.Sprintf("%X", string(encode.Sum(nil)[:5]))
-}
-
-func (l *link) Print() {
-	fmt.Println(l)
+func Print(u *url.URL) {
+	fmt.Println(u)
 }
