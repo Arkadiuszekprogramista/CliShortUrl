@@ -10,17 +10,17 @@ import (
 var version = "0.0.1"
 
 var rootCmd = &cobra.Command{
-	Use: "shorter",
+	Use:     "shorter",
 	Version: version,
-	Short: "shorter - a simply CLI to transform url to short url",
-	Long: "LOOOoooooooonngggg description of CLI",
+	Short:   "shorter - a simply CLI to transform url to short url",
+	Long:    "LOOOoooooooonngggg description of CLI",
 	Run: func(cmd *cobra.Command, args []string) {
 
 	},
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil{
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Whoops. There was an error while executing your CLi `%s`", err)
 		os.Exit(1)
 	}

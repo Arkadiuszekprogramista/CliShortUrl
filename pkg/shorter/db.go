@@ -9,37 +9,24 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-
 type Redis struct {
 	Pool *redis.Pool
 }
 
 var myRedis *Redis
 
-
 func NewRedis(r *Redis) Redis {
 	r = myRedis
 	return *r
 }
 
-func AddrValidation(addr string) (*url.URL, error) {
-
-	url, err := url.ParseRequestURI(addr)
-	if err != nil {
-		return url, err
-	} else {
-		return url, nil
-	}
-}
-
-
 func NewPool(host, port string) (*Redis, error) {
 	pool := &redis.Pool{
-		MaxIdle: 10,
+		MaxIdle:     10,
 		IdleTimeout: 3 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp",fmt.Sprintf("%s:%s",host, port))
-			},
+			return redis.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
+		},
 	}
 
 	temp := Redis{
@@ -51,36 +38,25 @@ func NewPool(host, port string) (*Redis, error) {
 	return myRedis, nil
 }
 
-
-func(r *Redis) AddShortUrlToRedis(addr string) error {
+func (r *Redis) AddShortUrlToRedis(addr *url.URL) error {
 	conn := r.Pool.Get()
 	defer conn.Close()
 
-	url, err := AddrValidation(addr)
+	u, err := Encode(addr)
 	if err != nil {
-		log.Printf("%s is not a URL", addr)
 		return err
-
-	} else {
-
-		u, err := Encode(url.Path)
-		if err != nil {
-			return err
-		}
-	
-		_, err = conn.Do("SET", url.Path, u)
-		if err != nil {
-			fmt.Println("Error", err)
-			return err
-		}
-		
-		return nil
 	}
 
+	_, err = conn.Do("SET", addr.String(), u)
+	if err != nil {
+		fmt.Println("Error", err)
+		return err
+	}
+
+	return nil
 }
 
-
-func(r *Redis) LoadDataFromRedis(key string) (string, error){
+func (r *Redis) LoadDataFromRedis(key string) (string, error) {
 	conn := r.Pool.Get()
 	defer conn.Close()
 
@@ -99,31 +75,27 @@ func(r *Redis) LoadDataFromRedis(key string) (string, error){
 
 }
 
-
-func(r *Redis) Close() {
+func (r *Redis) Close() {
 	defer r.Close()
 }
 
-
-func(r *Redis) PrintAll() (interface{}, error) {
-
-	var myKeys interface{}
+func (r *Redis) PrintAll() ([]string, error) {
 
 	keys, err := redis.Strings(r.Pool.Get().Do("KEYS", "*"))
 
 	if len(keys) >= 100 {
 		log.Println("Loaded more then 100 records, Please use different command")
+
 	} else {
-		for _, key := range keys{
+
+		for _, key := range keys {
 			log.Println(key)
 		}
 	}
 
 	if err != nil {
-		return nil ,err
+		return nil, err
 	}
-	
-	myKeys = keys
 
-	return myKeys, err
+	return keys, nil
 }

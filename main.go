@@ -7,9 +7,15 @@ import (
 	"log"
 )
 
-var Redis shorter.Redis
-
 func main() {
+
+	var app config.AppConfig
+
+	// app config
+	app.UseMySite = false
+	app.MySite = "https://www.wp.pl/"
+
+	shorterCmd.NewConfig(&app)
 
 	configuration, err := config.ConfigFromFile("./config.json")
 	if err != nil {
