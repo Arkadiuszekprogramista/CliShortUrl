@@ -17,6 +17,4 @@ func Encode(u *url.URL) (string, error) {
 
 }
 
-func Print(u *url.URL) {
-	fmt.Println(u)
-}
+

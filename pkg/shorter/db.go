@@ -1,6 +1,7 @@
 package shorter
 
 import (
+	"app/pkg/models"
 	"fmt"
 	"log"
 	"net/url"
@@ -56,11 +57,11 @@ func (r *Redis) AddShortUrlToRedis(addr *url.URL) error {
 	return nil
 }
 
-func (r *Redis) LoadDataFromRedis(key string) (string, error) {
+func (r *Redis) LoadDataFromRedis(key string) (interface{}, error) {
 	conn := r.Pool.Get()
 	defer conn.Close()
 
-	get, err := redis.String(conn.Do("GET", key))
+	get, err := redis.Values(conn.Do("HGETALL", key))
 
 	if err == redis.ErrNil {
 		return get, err
@@ -79,7 +80,7 @@ func (r *Redis) Close() {
 	defer r.Close()
 }
 
-func (r *Redis) PrintAll() ([]string, error) {
+func (r *Redis) PrintAllKeys() ([]string, error) {
 
 	keys, err := redis.Strings(r.Pool.Get().Do("KEYS", "*"))
 
@@ -98,4 +99,21 @@ func (r *Redis) PrintAll() ([]string, error) {
 	}
 
 	return keys, nil
+}
+
+func (r *Redis) AddUserToRedis(u *models.Result) error {
+	conn := r.Pool.Get()
+
+	defer conn.Close()
+
+	_, err := r.Pool.Get().Do("HMSET", u.Email,"firstname", u.Name.First, "lastname", u.Name.Last, "email", u.Email)
+	log.Printf("adding %s %s %s user to redis", u.Name.First, u.Name.Last, u.Email)
+	if err != nil {
+		return err
+	}
+
+
+
+	return nil
+
 }

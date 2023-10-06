@@ -2,13 +2,17 @@ package shorterCmd
 
 import (
 	"app/pkg/config"
+	"app/pkg/models"
 	"app/pkg/shorter"
+	"encoding/json"
 	"fmt"
+	"io"
+
 	"log"
+	"net/http"
 	"net/url"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/sclevine/agouti"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +23,7 @@ func NewConfig(a *config.AppConfig) {
 	app = a
 }
 
-var LoadDataFromRedisCmd = &cobra.Command{
+var LoadDataFromRedisCMD = &cobra.Command{
 	Use:     "get",
 	Aliases: []string{"get, load, g"},
 	Short:   "Searching for rcord of given key",
@@ -46,7 +50,7 @@ var LoadDataFromRedisCmd = &cobra.Command{
 	},
 }
 
-var PrintAllKeysFromRedisCmd = &cobra.Command{
+var PrintAllKeysFromRedisCMD = &cobra.Command{
 	Use:   "keys",
 	Short: "Printing all kays form db(redis)",
 	Args:  cobra.ExactArgs(0),
@@ -54,7 +58,7 @@ var PrintAllKeysFromRedisCmd = &cobra.Command{
 
 		db := shorter.NewRedis(myDB)
 
-		_, err := db.PrintAll()
+		_, err := db.PrintAllKeys()
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -62,7 +66,7 @@ var PrintAllKeysFromRedisCmd = &cobra.Command{
 	},
 }
 
-var EncodeCmd = &cobra.Command{
+var EncodeCMD = &cobra.Command{
 	Use:     "encode",
 	Aliases: []string{"enc"},
 	Short:   "Encode a url using sha256 hash function",
@@ -95,10 +99,10 @@ var EncodeCmd = &cobra.Command{
 	},
 }
 
-var AddEncodedUrlToDBCmd = &cobra.Command{
+var AddEncodedUrlToDBCMD = &cobra.Command{
 	Use:     "add",
 	Aliases: []string{"a"},
-	Short:   "Addeing encoded url to db",
+	Short:   "Adding encoded url to db",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -126,59 +130,59 @@ var AddEncodedUrlToDBCmd = &cobra.Command{
 	},
 }
 
-var MarecheckScriptCmd = &cobra.Command{
-	Use:   "marecheck",
-	Short: "Using Adam's scrip to checking pages",
-	Args:  cobra.ExactArgs(0),
+var PopulateDbByUsersCMD = &cobra.Command{
+	Use: "populate",
+	Short: "Adding random fake users data to redis",
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		// Start a new WebDriver session
-		driver := agouti.ChromeDriver()
+		var Response models.Response
 
-		// Start the driver
-		if err := driver.Start(); err != nil {
-			fmt.Println("Failed to start WebDriver:", err)
-			return
-		}
-		defer driver.Stop()
+		db := shorter.NewRedis(myDB)
 
-		// Open a new page using the WebDriver
-		page, err := driver.NewPage()
+		numberOfRecords := args[0]
+		url := fmt.Sprint("https://randomuser.me/api/?results=" + string(numberOfRecords))
+
+		c := &http.Client{}
+
+		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			fmt.Println("Failed to open page:", err)
-			return
+			log.Fatalln(err)
 		}
 
-		// Navigate to a URL
-		if err := page.Navigate("https://www.example.com"); err != nil {
-			fmt.Println("Failed to navigate:", err)
-			return
-		}
-
-		// Perform actions on the page
-		// For example, filling out a form and submitting it
-		inputField := page.Find("#inputFieldID")
-		if err := inputField.Fill("Hello, World!"); err != nil {
-			fmt.Println("Failed to fill input field:", err)
-			return
-		}
-
-		submitButton := page.Find("#submitButtonID")
-		if err := submitButton.Submit(); err != nil {
-			fmt.Println("Failed to submit form:", err)
-			return
-		}
-
-		// Extract and print page content
-		content, err := page.HTML()
+		resp, err := c.Do(req)
 		if err != nil {
-			fmt.Println("Failed to get page content:", err)
-			return
+			log.Fatalln(err)
 		}
-		fmt.Println("Page content:", content)
+
+		b, err := io.ReadAll(resp.Body)
+
+
+		err = json.Unmarshal(b, &Response)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		
+		log.Println(len(Response.Results))
+		for i := range Response.Results {
+			err = db.AddUserToRedis(&Response.Results[i])
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+
 	},
 }
 
+var RunCMD = &cobra.Command{
+	Use: "run",
+	Args: cobra.ExactArgs(0),
+	Run: func(cmd *cobra.Command, args []string) {
+
+	},
+
+}
+
 func init() {
-	rootCmd.AddCommand(EncodeCmd, PrintAllKeysFromRedisCmd, AddEncodedUrlToDBCmd, LoadDataFromRedisCmd, MarecheckScriptCmd)
+	rootCmd.AddCommand(EncodeCMD, PrintAllKeysFromRedisCMD, AddEncodedUrlToDBCMD, LoadDataFromRedisCMD,PopulateDbByUsersCMD)
 }
